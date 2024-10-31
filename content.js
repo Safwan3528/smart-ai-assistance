@@ -1,4 +1,40 @@
 let isSnipping = false;
+let isEnabled = true; // Default to enabled
+
+// Load initial state
+chrome.storage.local.get(['isEnabled'], function(result) {
+  isEnabled = result.isEnabled !== false; // Default to true if not set
+  if (isEnabled) {
+    detectQuestions();
+  }
+});
+
+// Listen for state changes
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  if (message.action === "updateState") {
+    isEnabled = message.isEnabled;
+    if (isEnabled) {
+      detectQuestions();
+    } else {
+      // Remove all answer buttons when disabled
+      const buttons = document.querySelectorAll('.smart-answer-btn');
+      buttons.forEach(button => button.remove());
+      
+      // Remove question-detected class
+      const questions = document.querySelectorAll('.question-detected');
+      questions.forEach(q => q.classList.remove('question-detected'));
+      
+      // Remove any active snipping elements
+      removeSnippingElements();
+    }
+  } else if (message.action === "startSnipping" && isEnabled) {
+    isSnipping = true;
+    createSnippingElements();
+    instruction.style.display = 'block';
+    handleSnipping();
+  }
+});
+
 let startX, startY;
 let overlay, selection, instruction;
 
@@ -130,16 +166,6 @@ function handleSnipping() {
     }
   });
 }
-
-// Start snipping when message received
-chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-  if (message.action === "startSnipping") {
-    isSnipping = true;
-    createSnippingElements();
-    instruction.style.display = 'block';
-    handleSnipping();
-  }
-});
 
 // Run detection when page loads
 detectQuestions();

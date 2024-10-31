@@ -4,9 +4,10 @@ document.addEventListener('DOMContentLoaded', function() {
   const snipButton = document.getElementById('snipButton');
   const answerDiv = document.getElementById('answer');
   const questionDisplay = document.getElementById('questionDisplay');
+  const enableToggle = document.getElementById('enableToggle');
 
-  // Load saved API key and selection
-  chrome.storage.local.get(['apiKey', 'selectedApi', 'pendingQuestion'], function(result) {
+  // Load saved settings
+  chrome.storage.local.get(['apiKey', 'selectedApi', 'pendingQuestion', 'isEnabled'], function(result) {
     if (result.apiKey) {
       apiKeyInput.value = result.apiKey;
       validateApiKey(result.apiKey, result.selectedApi || 'openai');
@@ -14,22 +15,53 @@ document.addEventListener('DOMContentLoaded', function() {
     if (result.selectedApi) {
       apiSelect.value = result.selectedApi;
     }
+    // Set toggle state
+    enableToggle.checked = result.isEnabled !== false; // Default to true if not set
+    updateExtensionState(enableToggle.checked);
+    
     // Check for pending question
-    if (result.pendingQuestion) {
-      // Display and process the pending question
+    if (result.pendingQuestion && enableToggle.checked) {
       questionDisplay.textContent = "Question: " + result.pendingQuestion;
       answerDiv.textContent = "Getting answer...";
       
-      // Get answer
       chrome.runtime.sendMessage({
         type: 'processQuestion',
         question: result.pendingQuestion
       });
       
-      // Clear the pending question
       chrome.storage.local.remove('pendingQuestion');
     }
   });
+
+  // Handle toggle changes
+  enableToggle.addEventListener('change', function() {
+    const isEnabled = enableToggle.checked;
+    chrome.storage.local.set({ isEnabled: isEnabled });
+    updateExtensionState(isEnabled);
+    
+    // Notify content scripts about the state change
+    chrome.tabs.query({}, function(tabs) {
+      tabs.forEach(tab => {
+        chrome.tabs.sendMessage(tab.id, {
+          action: "updateState",
+          isEnabled: isEnabled
+        }).catch(() => {}); // Ignore errors for inactive tabs
+      });
+    });
+  });
+
+  function updateExtensionState(isEnabled) {
+    apiSelect.disabled = !isEnabled;
+    apiKeyInput.disabled = !isEnabled;
+    snipButton.disabled = !isEnabled || !apiKeyInput.value;
+    
+    if (!isEnabled) {
+      answerDiv.textContent = "Smart Assistance is currently disabled.";
+      questionDisplay.textContent = "";
+    } else if (!apiKeyInput.value) {
+      answerDiv.textContent = "Please enter your API key to start using Smart Assistance.";
+    }
+  }
 
   // Save and validate API key when entered
   apiKeyInput.addEventListener('change', function() {
@@ -112,14 +144,14 @@ document.addEventListener('DOMContentLoaded', function() {
     });
   });
 
-  // Receive question and answer
+  // Update message listeners to check enabled state
   chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+    if (!enableToggle.checked) return; // Don't process messages if disabled
+    
     if (message.type === 'showPopupWithQuestion') {
-      // Display question
       questionDisplay.textContent = "Question: " + message.question;
       answerDiv.textContent = "Getting answer...";
       
-      // Get answer
       chrome.runtime.sendMessage({
         type: 'processQuestion',
         question: message.question
