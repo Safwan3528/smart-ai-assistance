@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Smart Assistance - Answer</title>
+  <style>
+    body {
+      padding: 20px;
+      font-family: Arial, sans-serif;
+      max-width: 800px;
+      margin: 0 auto;
+    }
+    .container {
+      background-color: #fff;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      padding: 20px;
+    }
+    .question {
+      background-color: #e9f5e9;
+      padding: 15px;
+      border-radius: 4px;
+      margin-bottom: 20px;
+      font-style: italic;
+    }
+    .answer {
+      background-color: #f5f5f5;
+      padding: 15px;
+      border-radius: 4px;
+      white-space: pre-wrap;
+      line-height: 1.6;
+    }
+    .title {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+    .title img {
+      width: 24px;
+      height: 24px;
+    }
+    .title h1 {
+      margin: 0;
+      font-size: 24px;
+      color: #333;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="title">
+      <img src="icons/icon32.png" alt="Smart Assistance Logo">
+      <h1>Smart Assistance</h1>
+    </div>
+    <div id="question" class="question"></div>
+    <div id="answer" class="answer">Getting answer...</div>
+  </div>
+  <script src="answer.js"></script>
+</body>
+</html> 
